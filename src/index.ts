@@ -14,7 +14,6 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false }
 });
 
-// ─── AI ───────────────────────────────────────────────────────────────────────
 const askAI = async (userMessage: string): Promise<string> => {
   try {
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -28,7 +27,7 @@ const askAI = async (userMessage: string): Promise<string> => {
         messages: [
           {
             role: 'system',
-            content: 'You are a business idea advisor for Ethiopia. You help Ethiopian entrepreneurs with creative, practical business ideas. When the user writes in Amharic, respond in perfect Amharic. When they write in English, respond in English. Suggest realistic business ideas suitable for Ethiopia considering the local market, culture, and economy. Include estimated startup cost in Ethiopian Birr, target customers, and potential monthly income. Be concise and practical.'
+            content: 'You are a male business idea advisor for Ethiopia. You ONLY respond in English regardless of what language the user writes in. You help Ethiopian entrepreneurs with creative, practical business ideas. Suggest realistic business ideas suitable for Ethiopia considering the local market, culture, and economy. Include estimated startup cost in Ethiopian Birr, target customers, and potential monthly income. Be concise and practical.'
           },
           {
             role: 'user',
@@ -46,7 +45,6 @@ const askAI = async (userMessage: string): Promise<string> => {
   }
 };
 
-// ─── Database ─────────────────────────────────────────────────────────────────
 const initDB = async () => {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS biz_users (
@@ -89,25 +87,23 @@ const saveUser = async (chatId: number, username: string, firstName: string) => 
 
 const isAdmin = (chatId: number) => String(chatId) === String(ADMIN_CHAT_ID);
 
-// ─── Bot ──────────────────────────────────────────────────────────────────────
 const bot = new Telegraf(BOT_TOKEN);
 
 const mainMenu = Markup.keyboard([
   ['💡 Browse Ideas', '✍️ Submit My Idea'],
-  ['🤖 AI Generate Idea', '🏆 Top Ideas'],
+  ['👨‍💼 Ask AI', '🏆 Top Ideas'],
   ['📂 Categories', '🔍 Search Ideas'],
   ['👥 Community', '❓ Help'],
 ]).resize();
 
 const adminMenu = Markup.keyboard([
   ['💡 Browse Ideas', '✍️ Submit My Idea'],
-  ['🤖 AI Generate Idea', '🏆 Top Ideas'],
+  ['👨‍💼 Ask AI', '🏆 Top Ideas'],
   ['📂 Categories', '🔍 Search Ideas'],
   ['👥 Community', '❓ Help'],
   ['📊 Stats', '🗑️ Admin'],
 ]).resize();
 
-// ─── Start ────────────────────────────────────────────────────────────────────
 bot.start(async (ctx) => {
   const chatId = ctx.chat.id;
   const username = ctx.from?.username || '';
@@ -115,27 +111,25 @@ bot.start(async (ctx) => {
   await saveUser(chatId, username, firstName);
   const menu = isAdmin(chatId) ? adminMenu : mainMenu;
   ctx.reply(
-    '👋 እንኳን ደህና መጡ ' + firstName + '!\n\n' +
-    '💼 Welcome to Ethiopia Business Ideas Bot!\n\n' +
+    '👋 Welcome ' + firstName + '!\n\n' +
+    '💼 Ethiopia Business Ideas Bot\n\n' +
     'Discover, share, and vote on the best\n' +
     'business ideas for Ethiopia!\n\n' +
     '💡 Browse ideas from the community\n' +
     '✍️ Share your own business idea\n' +
-    '🤖 Get AI-generated business ideas\n' +
+    '👨‍💼 Get AI-generated business ideas\n' +
     '🏆 See the top voted ideas\n\n' +
     'Choose an option below:',
     menu
   );
 });
 
-// ─── Browse Ideas ─────────────────────────────────────────────────────────────
 bot.hears('💡 Browse Ideas', async (ctx) => {
   try {
     const result = await pool.query(
       'SELECT * FROM biz_ideas ORDER BY created_at DESC LIMIT 5'
     );
     if (result.rows.length === 0) return ctx.reply('No ideas yet! Be the first to submit one using ✍️ Submit My Idea', mainMenu);
-
     ctx.reply('💡 Latest Business Ideas:\n─────────────────');
     for (const idea of result.rows) {
       const msg =
@@ -154,14 +148,12 @@ bot.hears('💡 Browse Ideas', async (ctx) => {
   }
 });
 
-// ─── Top Ideas ────────────────────────────────────────────────────────────────
 bot.hears('🏆 Top Ideas', async (ctx) => {
   try {
     const result = await pool.query(
       'SELECT * FROM biz_ideas ORDER BY likes DESC LIMIT 5'
     );
     if (result.rows.length === 0) return ctx.reply('No ideas yet! Be the first to submit one.', mainMenu);
-
     ctx.reply('🏆 Top Voted Business Ideas:\n─────────────────');
     for (const [i, idea] of result.rows.entries()) {
       const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'];
@@ -181,7 +173,6 @@ bot.hears('🏆 Top Ideas', async (ctx) => {
   }
 });
 
-// ─── Categories ───────────────────────────────────────────────────────────────
 bot.hears('📂 Categories', (ctx) => {
   ctx.reply(
     '📂 Business Idea Categories:\n\n' +
@@ -201,12 +192,10 @@ bot.hears('📂 Categories', (ctx) => {
   );
 });
 
-// ─── Search ───────────────────────────────────────────────────────────────────
 bot.hears('🔍 Search Ideas', (ctx) => {
   ctx.reply('Type your search keyword:\nExample: agriculture', Markup.forceReply());
 });
 
-// ─── Community ────────────────────────────────────────────────────────────────
 bot.hears('👥 Community', async (ctx) => {
   try {
     const users = await pool.query('SELECT COUNT(*) FROM biz_users');
@@ -224,13 +213,12 @@ bot.hears('👥 Community', async (ctx) => {
   }
 });
 
-// ─── Help ─────────────────────────────────────────────────────────────────────
 bot.hears('❓ Help', (ctx) => {
   ctx.reply(
     '📖 How to use Ethiopia Business Ideas Bot:\n\n' +
     '💡 Browse Ideas — see latest ideas\n' +
     '✍️ Submit My Idea — share your idea\n' +
-    '🤖 AI Generate Idea — get AI suggestions\n' +
+    '👨‍💼 Ask AI — get AI business suggestions\n' +
     '🏆 Top Ideas — most liked ideas\n' +
     '📂 Categories — browse by category\n' +
     '🔍 Search Ideas — search by keyword\n' +
@@ -241,22 +229,21 @@ bot.hears('❓ Help', (ctx) => {
   );
 });
 
-// ─── AI Generate Idea ─────────────────────────────────────────────────────────
-bot.hears('🤖 AI Generate Idea', (ctx) => {
+bot.hears('👨‍💼 Ask AI', (ctx) => {
   ctx.reply(
-    '🤖 AI Business Idea Generator!\n\n' +
-    'Tell me your interests or situation and I will suggest a business idea!\n\n' +
+    '👨‍💼 AI Business Idea Advisor!\n\n' +
+    'Tell me your interests or situation\n' +
+    'and I will suggest a business idea!\n\n' +
     'Examples:\n' +
     '• I have 5000 birr to invest\n' +
     '• I am good at cooking\n' +
-    '• I want online business\n' +
-    '• ትንሽ ካፒታል አለኝ ምን ልስራ?\n' +
-    '• በቴክኖሎጂ ዘርፍ ምን ዓይነት ቢዝነስ?\n\n' +
+    '• I want an online business\n' +
+    '• I am in Addis Ababa with no capital\n' +
+    '• I want to start in agriculture\n\n' +
     'Just type your situation! 👇'
   );
 });
 
-// ─── Submit Idea ──────────────────────────────────────────────────────────────
 bot.hears('✍️ Submit My Idea', (ctx) => {
   ctx.reply(
     '✍️ Share your business idea!\n\n' +
@@ -274,7 +261,6 @@ bot.hears('✍️ Submit My Idea', (ctx) => {
   );
 });
 
-// ─── Admin Stats ──────────────────────────────────────────────────────────────
 bot.hears('📊 Stats', async (ctx) => {
   if (!isAdmin(ctx.chat.id)) return ctx.reply('⛔ Admin only.', mainMenu);
   try {
@@ -296,14 +282,12 @@ bot.hears('📊 Stats', async (ctx) => {
   }
 });
 
-// ─── Like command ─────────────────────────────────────────────────────────────
 bot.command(/like_(\d+)/, async (ctx) => {
   const ideaId = parseInt((ctx.match as any)[1]);
   const chatId = ctx.chat.id;
   try {
     const idea = await pool.query('SELECT * FROM biz_ideas WHERE id = $1', [ideaId]);
     if (idea.rows.length === 0) return ctx.reply('⚠️ Idea #' + ideaId + ' not found.');
-
     await pool.query(
       'INSERT INTO biz_likes (chat_id, idea_id) VALUES ($1, $2)',
       [chatId, ideaId]
@@ -315,12 +299,10 @@ bot.command(/like_(\d+)/, async (ctx) => {
   }
 });
 
-// ─── Handle Text ──────────────────────────────────────────────────────────────
 bot.on('text', async (ctx) => {
   const text = (ctx.message as any)?.text || '';
   if (text.startsWith('/')) return;
 
-  // Submit idea
   if (text.includes('TITLE:') && text.includes('DESCRIPTION:')) {
     try {
       const getField = (field: string): string | null => {
@@ -332,9 +314,7 @@ bot.on('text', async (ctx) => {
       const category = getField('CATEGORY') || 'General';
       const cost = getField('COST');
       const description = getField('DESCRIPTION');
-
       if (!title || !description) return ctx.reply('⚠️ Please include TITLE and DESCRIPTION.');
-
       const firstName = ctx.from?.first_name || 'Anonymous';
       await pool.query(
         'INSERT INTO biz_ideas (chat_id, first_name, title, description, category, startup_cost) VALUES ($1, $2, $3, $4, $5, $6)',
@@ -354,7 +334,6 @@ bot.on('text', async (ctx) => {
     return;
   }
 
-  // Search ideas
   try {
     const result = await pool.query(
       'SELECT * FROM biz_ideas WHERE title ILIKE $1 OR description ILIKE $1 OR category ILIKE $1 ORDER BY likes DESC LIMIT 5',
@@ -378,13 +357,11 @@ bot.on('text', async (ctx) => {
     }
   } catch {}
 
-  // Ask AI for business idea
-  await ctx.reply('🤖 Let me think of a business idea for you...');
+  await ctx.reply('👨‍💼 Let me think of a business idea for you...');
   const aiResponse = await askAI(text);
-  ctx.reply('🤖 AI Business Idea:\n\n' + aiResponse, mainMenu);
+  ctx.reply('👨‍💼 AI Advisor:\n\n' + aiResponse, mainMenu);
 });
 
-// ─── Start ────────────────────────────────────────────────────────────────────
 const start = async () => {
   await initDB();
   bot.launch();
