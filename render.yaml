@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: ethiopia-business-bot
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: ADMIN_CHAT_ID
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
